@@ -68,20 +68,29 @@ def _sync_for_single_device(settings, label, ip, username, password, start_time,
         }
     }
 
-    response = requests.post(
-        url,
-        auth=HTTPDigestAuth(username, password),
-        headers=headers,
-        json=payload,
-        verify=False,
-        timeout=600,
-    )
+    # Use retry logic for device connection
+    from biometric_integration.biometric_integration.error_handler import retry_with_backoff, handle_device_connection_error
+    
+    def fetch_device_data():
+        return requests.post(
+            url,
+            auth=HTTPDigestAuth(username, password),
+            headers=headers,
+            json=payload,
+            verify=False,
+            timeout=600,
+        )
+    
+    try:
+        response = retry_with_backoff(fetch_device_data, max_retries=3, initial_delay=2)
+    except Exception as e:
+        handle_device_connection_error(ip, e, {"label": label, "operation": "initial_fetch"})
+        raise
 
     if response.status_code != 200:
-        frappe.throw(
-            f"[{label}] Failed to fetch attendance logs. "
-            f"Status: {response.status_code}, Response: {response.text}"
-        )
+        error_msg = f"[{label}] Failed to fetch attendance logs. Status: {response.status_code}, Response: {response.text}"
+        handle_device_connection_error(ip, Exception(error_msg), {"label": label, "status_code": response.status_code})
+        frappe.throw(error_msg)
 
     data = response.json()
     total_records = data.get("AcsEvent", {}).get("totalMatches", 0)
@@ -95,26 +104,26 @@ def _sync_for_single_device(settings, label, ip, username, password, start_time,
     count = 0
     skipped = 0
     position = 0
-    batch_size = 30
+    batch_size = 100  # Increased from 30 to 100 for better performance
 
     while True:
         payload["AcsEventCond"]["searchResultPosition"] = position
         payload["AcsEventCond"]["maxResults"] = batch_size
 
-        response = requests.post(
-            url,
-            auth=HTTPDigestAuth(username, password),
-            headers=headers,
-            json=payload,
-            verify=False,
-            timeout=600,
-        )
+        try:
+            response = retry_with_backoff(fetch_device_data, max_retries=2, initial_delay=1)
+        except Exception as e:
+            handle_device_connection_error(ip, e, {"label": label, "operation": "batch_fetch", "position": position})
+            # Continue with next batch instead of failing completely
+            position += batch_size
+            continue
 
         if response.status_code != 200:
-            frappe.throw(
-                f"[{label}] Failed to fetch attendance logs. "
-                f"Status: {response.status_code}, Response: {response.text}"
-            )
+            error_msg = f"[{label}] Failed to fetch attendance logs. Status: {response.status_code}, Response: {response.text}"
+            handle_device_connection_error(ip, Exception(error_msg), {"label": label, "status_code": response.status_code})
+            # Continue with next batch
+            position += batch_size
+            continue
 
         data = response.json()
         events = data.get("AcsEvent", {}).get("InfoList", [])
@@ -122,6 +131,8 @@ def _sync_for_single_device(settings, label, ip, username, password, start_time,
         if not events:
             break
 
+        # Batch process events for better performance
+        events_to_process = []
         for log in events:
             emp_no = log.get("employeeNoString")
             event_timestamp = log.get("time", "")
@@ -129,62 +140,100 @@ def _sync_for_single_device(settings, label, ip, username, password, start_time,
                 continue
 
             # Convert device time format to Frappe format
-            event_datetime = datetime.strptime(event_timestamp[:19], "%Y-%m-%dT%H:%M:%S")
+            try:
+                event_datetime = datetime.strptime(event_timestamp[:19], "%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                continue
 
-            # Create or get Attendance Log doc for employee and date
-            attendance_log = frappe.get_all(
-                "Biometric Attendance Log",
-                filters={"employee_no": emp_no, "event_date": event_datetime.date()},
-                limit_page_length=1,
-            )
-            if attendance_log:
-                doc = frappe.get_doc("Biometric Attendance Log", attendance_log[0].name)
-            else:
-                doc = frappe.new_doc("Biometric Attendance Log")
-                doc.employee_no = emp_no
-                doc.event_date = event_datetime.date()
+            # Determine punch type from event (if available)
+            # Hikvision events may have different types: CheckIn, CheckOut, BreakIn, BreakOut, etc.
+            event_type = log.get("eventType") or log.get("event_type") or "CheckIn"
+            punch_type_map = {
+                "CheckIn": "Auto",
+                "CheckOut": "Auto",
+                "BreakIn": "Break",
+                "BreakOut": "Break",
+                "OvertimeIn": "Overtime",
+                "OvertimeOut": "Overtime"
+            }
+            punch_type = punch_type_map.get(event_type, "Auto")
 
-            # Set device_id on log if field exists
-            if log_has_device_id:
-                doc.device_id = ip
+            events_to_process.append({
+                "emp_no": emp_no,
+                "event_datetime": event_datetime,
+                "punch_type": punch_type,
+                "log": log
+            })
 
-            # Avoid exact duplicate punch time for that employee/date
-            existing_punch = (
-                frappe.db.sql(
-                    """
-                    SELECT COUNT(*)
-                    FROM `tabBiometric Attendance Punch Table`
-                    WHERE parent = %(parent)s
-                      AND punch_time = %(punch_time)s
-                """,
-                    {
-                        "parent": doc.name,
-                        "punch_time": event_datetime.time(),
-                    },
-                )[0][0]
-                > 0
-            )
+        # Batch fetch existing logs
+        if events_to_process:
+            emp_dates = {(e["emp_no"], e["event_datetime"].date()) for e in events_to_process}
+            existing_logs = {}
+            
+            for emp_no, event_date in emp_dates:
+                attendance_log = frappe.get_all(
+                    "Biometric Attendance Log",
+                    filters={"employee_no": emp_no, "event_date": event_date},
+                    limit_page_length=1,
+                )
+                if attendance_log:
+                    existing_logs[(emp_no, event_date)] = attendance_log[0].name
 
-            if not existing_punch:
-                punch_row = {
-                    "punch_time": event_datetime.time(),
-                    "punch_type": "Auto",  # device punch
-                }
-                if punch_has_device_id:
-                    punch_row["device_id"] = ip
+            # Process events in batches
+            docs_to_save = {}
+            for event_data in events_to_process:
+                emp_no = event_data["emp_no"]
+                event_date = event_data["event_datetime"].date()
+                event_time = event_data["event_datetime"].time()
+                punch_type = event_data["punch_type"]
+                
+                # Get or create log doc
+                log_key = (emp_no, event_date)
+                if log_key in existing_logs:
+                    doc_name = existing_logs[log_key]
+                    if doc_name not in docs_to_save:
+                        docs_to_save[doc_name] = frappe.get_doc("Biometric Attendance Log", doc_name)
+                    doc = docs_to_save[doc_name]
+                else:
+                    doc = frappe.new_doc("Biometric Attendance Log")
+                    doc.employee_no = emp_no
+                    doc.event_date = event_date
+                    if log_has_device_id:
+                        doc.device_id = ip
+                    docs_to_save[doc.name] = doc
 
-                doc.append("punch_table", punch_row)
+                # Check for duplicate punch time
+                existing_punch = any(
+                    p.punch_time == event_time 
+                    for p in doc.punch_table 
+                    if hasattr(p, 'punch_time')
+                )
+
+                if not existing_punch:
+                    punch_row = {
+                        "punch_time": event_time,
+                        "punch_type": punch_type,
+                    }
+                    if punch_has_device_id:
+                        punch_row["device_id"] = ip
+
+                    doc.append("punch_table", punch_row)
+                else:
+                    skipped += 1
+
+            # Bulk save all documents
+            for doc in docs_to_save.values():
                 try:
+                    punch_count_before = len(doc.punch_table)
                     doc.save(ignore_permissions=True)
-                    count += 1
+                    punch_count_after = len(doc.punch_table)
+                    count += (punch_count_after - punch_count_before)
                 except Exception:
                     frappe.log_error(
                         frappe.get_traceback(),
-                        f"[{label}] Insert failed for employee {emp_no}",
+                        f"[{label}] Insert failed for employee {doc.employee_no}",
                     )
                     continue
-            else:
-                skipped += 1
 
         position += len(events)
 
@@ -211,6 +260,42 @@ def sync_attendance():
     msg_parts.append(
         f"{created} Employee Checkins created, {already_synced} punches were already synced."
     )
+    
+        # Optionally: create Attendance records using HRMS auto-attendance
+        # Note: HRMS has its own auto-attendance processing via Shift Type
+        # We can trigger it or let it run via scheduler
+        if settings.get("auto_create_attendance", 0):
+            # Use HRMS auto-attendance processing instead of custom function
+            # HRMS processes attendance via Shift Type.process_auto_attendance()
+            # This is handled by HRMS scheduler, but we can trigger it manually if needed
+            try:
+                from biometric_integration.biometric_integration.attendance_processor import create_attendance_from_checkins
+                from datetime import datetime as dt
+                from frappe.utils import getdate
+                
+                # Process attendance for date range
+                start_date = dt.strptime(settings.start_date_and_time, "%Y-%m-%d %H:%M:%S").date()
+                end_date = dt.strptime(settings.end_date_and_time, "%Y-%m-%d %H:%M:%S").date()
+                
+                att_created = 0
+                att_skipped = 0
+                att_errors = 0
+                
+                current_date = start_date
+                while current_date <= end_date:
+                    c, s, e = create_attendance_from_checkins(current_date)
+                    att_created += c
+                    att_skipped += s
+                    att_errors += e
+                    current_date += timedelta(days=1)
+                
+                if att_created > 0:
+                    msg_parts.append(
+                        f"{att_created} Attendance records created, {att_skipped} skipped, {att_errors} errors."
+                    )
+            except ImportError:
+                # HRMS may not be installed
+                pass
 
     full_msg = " ".join(msg_parts)
     frappe.msgprint(full_msg)
@@ -229,12 +314,15 @@ def sync_attendance_device_only():
     settings = frappe.get_doc("Biometric Integration Settings", "Biometric Integration Settings")
 
     # Prepare time window used for ALL devices
+    # Get timezone from settings or default to +08:00
+    timezone = getattr(settings, "timezone", "+08:00") or "+08:00"
+    
     start_time = datetime.strptime(
         settings.start_date_and_time, "%Y-%m-%d %H:%M:%S"
-    ).strftime("%Y-%m-%dT%H:%M:%S+08:00")
+    ).strftime(f"%Y-%m-%dT%H:%M:%S{timezone}")
     end_time = datetime.strptime(
         settings.end_date_and_time, "%Y-%m-%d %H:%M:%S"
-    ).strftime("%Y-%m-%dT%H:%M:%S+08:00")
+    ).strftime(f"%Y-%m-%dT%H:%M:%S{timezone}")
 
     device_configs = _get_device_configs(settings)
     if not device_configs:

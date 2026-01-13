@@ -4,4 +4,5 @@
 biometric_integration.patches.v1_1_add_punch_sync_fields
 biometric_integration.patches.v1_2_add_device_id_fields
 biometric_integration.patches.v1_3_adjust_devices_section
+biometric_integration.patches.v1_4_add_device_status_fields
 

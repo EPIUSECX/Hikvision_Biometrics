@@ -15,6 +15,12 @@
     "column_break_1",
     "start_date_and_time",
     "end_date_and_time",
+    "timezone",
+    "section_break_geolocation",
+    "default_latitude",
+    "default_longitude",
+    "section_break_attendance",
+    "auto_create_attendance",
     "devices"
   ],
   "fields": [
@@ -49,6 +55,50 @@
       "fieldname": "end_date_and_time",
       "label": "End Date And Time",
       "fieldtype": "Datetime"
+    },
+    {
+      "fieldname": "timezone",
+      "label": "Timezone",
+      "fieldtype": "Data",
+      "default": "+08:00",
+      "description": "Timezone offset for device timestamps (e.g., +08:00, -05:00)"
+    },
+    {
+      "fieldname": "section_break_geolocation",
+      "fieldtype": "Section Break",
+      "label": "Geolocation Settings"
+    },
+    {
+      "fieldname": "default_latitude",
+      "label": "Default Latitude",
+      "fieldtype": "Float",
+      "precision": "7",
+      "description": "Default latitude for geolocation when device-specific location is not available. Only used if HR Settings > Allow Geolocation Tracking is enabled."
+    },
+    {
+      "fieldname": "default_longitude",
+      "label": "Default Longitude",
+      "fieldtype": "Float",
+      "precision": "7",
+      "description": "Default longitude for geolocation when device-specific location is not available. Only used if HR Settings > Allow Geolocation Tracking is enabled."
+    },
+    {
+      "fieldname": "section_break_attendance",
+      "fieldtype": "Section Break",
+      "label": "Attendance Settings"
+    },
+    {
+      "fieldname": "auto_create_attendance",
+      "label": "Auto Create Attendance",
+      "fieldtype": "Check",
+      "default": 1,
+      "description": "Automatically create Attendance records from Employee Checkin"
+    },
+    {
+      "fieldname": "webhook_secret",
+      "label": "Webhook Secret",
+      "fieldtype": "Password",
+      "description": "Secret key for webhook authentication (optional)"
     },
     {
       "fieldname": "devices",
