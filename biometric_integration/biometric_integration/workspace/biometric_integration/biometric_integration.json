@@ -1,12 +1,13 @@
 {
+ "app": "biometric_integration",
  "charts": [],
- "content": "[{\"id\": \"biometric-header-1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Biometric Integration</b></span>\", \"col\": 12}}, {\"id\": \"biometric-shortcut-settings\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Biometric Settings\", \"col\": 3}}, {\"id\": \"biometric-shortcut-log\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Attendance Logs\", \"col\": 3}}, {\"id\": \"biometric-shortcut-manual\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Manual Punch\", \"col\": 3}}, {\"id\": \"biometric-shortcut-checkin\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Employee Checkin\", \"col\": 3}}, {\"id\": \"biometric-shortcut-daily-report\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Daily Report\", \"col\": 3}}, {\"id\": \"biometric-shortcut-monthly-report\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Monthly Report\", \"col\": 3}}, {\"id\": \"biometric-shortcut-device-list\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Devices\", \"col\": 3}}, {\"id\": \"biometric-spacer-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"biometric-header-2\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Operations and Setup</b></span>\", \"col\": 12}}, {\"id\": \"biometric-card-operations\", \"type\": \"card\", \"data\": {\"card_name\": \"Operations\", \"col\": 4}}, {\"id\": \"biometric-card-configuration\", \"type\": \"card\", \"data\": {\"card_name\": \"Configuration\", \"col\": 4}}, {\"id\": \"biometric-card-reports\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}]",
- "creation": "2026-05-05 13:10:32.405221",
+ "content": "[{\"id\": \"biometric-header-start\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Run time & attendance</b></span>\", \"col\": 12}}, {\"id\": \"biometric-shortcut-setup\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Devices & Sync\", \"col\": 3}}, {\"id\": \"biometric-shortcut-checkins\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Employee Check-ins\", \"col\": 3}}, {\"id\": \"biometric-shortcut-attendance\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Attendance\", \"col\": 3}}, {\"id\": \"biometric-shortcut-daily\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Daily Review\", \"col\": 3}}, {\"id\": \"biometric-shortcut-manual\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Manual Correction\", \"col\": 3}}, {\"id\": \"biometric-shortcut-monthly\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Monthly Summary\", \"col\": 3}}, {\"id\": \"biometric-shortcut-shifts\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Shift Types\", \"col\": 3}}, {\"id\": \"biometric-shortcut-employees\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Employees\", \"col\": 3}}, {\"id\": \"biometric-spacer-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"biometric-header-resources\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Practitioner resources</b></span>\", \"col\": 12}}, {\"id\": \"biometric-card-daily\", \"type\": \"card\", \"data\": {\"card_name\": \"Daily Operations\", \"col\": 4}}, {\"id\": \"biometric-card-setup\", \"type\": \"card\", \"data\": {\"card_name\": \"People & Setup\", \"col\": 4}}, {\"id\": \"biometric-card-reports\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}]",
+ "creation": "2026-10-04 01:40:06.724593",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
  "hide_custom": 0,
- "icon": "setting-gear",
+ "icon": "fingerprint",
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
@@ -15,7 +16,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Operations",
+   "label": "Daily Operations",
    "link_count": 0,
    "link_type": "DocType",
    "onboard": 0,
@@ -24,27 +25,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Biometric Attendance Log",
-   "link_count": 0,
-   "link_to": "Biometric Attendance Log",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Biometric Manual Punch",
-   "link_count": 0,
-   "link_to": "Biometric Manual Punch",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Employee Checkin",
+   "label": "Employee Check-ins",
    "link_count": 0,
    "link_to": "Employee Checkin",
    "link_type": "DocType",
@@ -54,7 +35,37 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Configuration",
+   "label": "Attendance",
+   "link_count": 0,
+   "link_to": "Attendance",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Raw Device Events",
+   "link_count": 0,
+   "link_to": "Biometric Attendance Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Manual Correction",
+   "link_count": 0,
+   "link_to": "Biometric Manual Punch",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "People & Setup",
    "link_count": 0,
    "link_type": "DocType",
    "onboard": 0,
@@ -63,7 +74,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Biometric Integration Settings",
+   "label": "Devices & Sync",
    "link_count": 0,
    "link_to": "Biometric Integration Settings",
    "link_type": "DocType",
@@ -73,9 +84,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Biometric Attendance Punch Table",
+   "label": "Employees",
    "link_count": 0,
-   "link_to": "Biometric Attendance Punch Table",
+   "link_to": "Employee",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -83,9 +94,19 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Biometric Device",
+   "label": "Shift Types",
    "link_count": 0,
-   "link_to": "Biometric Device",
+   "link_to": "Shift Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Shift Assignments",
+   "link_count": 0,
+   "link_to": "Shift Assignment",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -102,7 +123,7 @@
   {
    "hidden": 0,
    "is_query_report": 1,
-   "label": "Biometric Daily Report",
+   "label": "Daily Punch Review",
    "link_count": 0,
    "link_to": "Biometric Daily Report",
    "link_type": "Report",
@@ -113,16 +134,27 @@
   {
    "hidden": 0,
    "is_query_report": 1,
-   "label": "Biometric Monthly Report",
+   "label": "Monthly Hours Summary",
    "link_count": 0,
    "link_to": "Biometric Monthly Report",
    "link_type": "Report",
    "onboard": 0,
    "report_ref_doctype": "Biometric Attendance Log",
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Shift Attendance",
+   "link_count": 0,
+   "link_to": "Shift Attendance",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "Biometric Attendance Log",
+   "type": "Link"
   }
  ],
- "modified": "2026-05-05 21:09:46.199934",
+ "modified": "2026-10-04 01:47:22.190692",
  "modified_by": "Administrator",
  "module": "Biometric Integration",
  "name": "Biometric Integration",
@@ -135,60 +167,84 @@
    "role": "System Manager"
   },
   {
+   "role": "HR Manager"
+  },
+  {
+   "role": "HR User"
+  },
+  {
    "role": "CE HR"
   }
  ],
  "sequence_id": 0.0,
  "shortcuts": [
   {
-   "color": "Blue",
+   "color": "blue",
    "doc_view": "List",
-   "label": "Biometric Settings",
+   "icon": "settings",
+   "label": "Devices & Sync",
    "link_to": "Biometric Integration Settings",
    "type": "DocType"
   },
   {
-   "color": "Green",
+   "color": "green",
    "doc_view": "List",
-   "label": "Attendance Logs",
-   "link_to": "Biometric Attendance Log",
-   "type": "DocType"
-  },
-  {
-   "color": "Orange",
-   "doc_view": "List",
-   "label": "Manual Punch",
-   "link_to": "Biometric Manual Punch",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Employee Checkin",
+   "icon": "pointer",
+   "label": "Employee Check-ins",
    "link_to": "Employee Checkin",
    "type": "DocType"
   },
   {
-   "color": "Blue",
-   "doc_view": "",
-   "label": "Daily Report",
-   "type": "URL",
-   "url": "/app/query-report/Biometric%20Daily%20Report"
-  },
-  {
-   "color": "Purple",
-   "doc_view": "",
-   "label": "Monthly Report",
-   "type": "URL",
-   "url": "/app/query-report/Biometric%20Monthly%20Report"
-  },
-  {
-   "color": "Dark Blue",
+   "color": "cyan",
    "doc_view": "List",
-   "label": "Devices",
-   "link_to": "Biometric Device",
+   "icon": "calendar-check",
+   "label": "Attendance",
+   "link_to": "Attendance",
+   "type": "DocType"
+  },
+  {
+   "color": "blue",
+   "doc_view": "",
+   "icon": "notepad-text",
+   "label": "Daily Review",
+   "link_to": "Biometric Daily Report",
+   "report_ref_doctype": "Biometric Attendance Log",
+   "type": "Report"
+  },
+  {
+   "color": "orange",
+   "doc_view": "List",
+   "icon": "tool",
+   "label": "Manual Correction",
+   "link_to": "Biometric Manual Punch",
+   "type": "DocType"
+  },
+  {
+   "color": "purple",
+   "doc_view": "",
+   "icon": "chart",
+   "label": "Monthly Summary",
+   "link_to": "Biometric Monthly Report",
+   "report_ref_doctype": "Biometric Attendance Log",
+   "type": "Report"
+  },
+  {
+   "color": "gray",
+   "doc_view": "List",
+   "icon": "milestone",
+   "label": "Shift Types",
+   "link_to": "Shift Type",
+   "type": "DocType"
+  },
+  {
+   "color": "green",
+   "doc_view": "List",
+   "icon": "users",
+   "label": "Employees",
+   "link_to": "Employee",
    "type": "DocType"
   }
  ],
- "title": "Biometric Integration"
+ "title": "Biometric Integration",
+ "type": "Workspace"
 }

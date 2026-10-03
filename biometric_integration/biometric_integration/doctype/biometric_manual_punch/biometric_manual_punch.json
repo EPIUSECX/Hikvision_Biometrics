@@ -7,6 +7,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "instructions",
+  "details_section",
   "employee",
   "column_break_acro",
   "punch_date",
@@ -15,6 +17,15 @@
   "column_break_swhw"
  ],
  "fields": [
+  {
+   "fieldname": "instructions",
+   "fieldtype": "HTML",
+   "options": "<div class=\"text-muted\">Use this only to correct a missing terminal event. Saving adds it to the raw log and HRMS Employee Check-ins. IN/OUT follows chronological order, so multi-session days should contain complete pairs.</div>"
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break"
+  },
   {
    "fieldname": "employee",
    "fieldtype": "Link",
@@ -31,6 +42,7 @@
   {
    "fieldname": "punch_date",
    "fieldtype": "Date",
+   "default": "Today",
    "in_list_view": 1,
    "label": "Punch Date",
    "reqd": 1,
@@ -39,6 +51,7 @@
   {
    "fieldname": "punch_time",
    "fieldtype": "Time",
+   "default": "Now",
    "in_list_view": 1,
    "label": "Punch Time",
    "reqd": 1,
@@ -72,6 +85,28 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
    "write": 1
   },
   {

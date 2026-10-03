@@ -1,14 +1,15 @@
 import frappe
 from frappe import _
-from datetime import datetime, timedelta
+from datetime import timedelta
 from frappe.utils import nowdate
 
 
 def execute(filters=None):
     columns = [
-        {"fieldname": "employee_name", "label": _("Name"), "fieldtype": "Data", "width": 200, "align": "left"},
-        {"fieldname": "employee_id", "label": _("ID"), "fieldtype": "Data", "width": 65, "align": "center"},
-        {"fieldname": "total_duration", "label": _("Total Hours"), "fieldtype": "Data", "width": 75, "align": "center"}
+        {"fieldname": "employee_name", "label": _("Employee"), "fieldtype": "Data", "width": 200, "align": "left"},
+        {"fieldname": "employee_id", "label": _("Device ID"), "fieldtype": "Data", "width": 90, "align": "center"},
+        {"fieldname": "review_status", "label": _("Review Status"), "fieldtype": "Data", "width": 120},
+        {"fieldname": "total_duration", "label": _("Worked"), "fieldtype": "Data", "width": 80, "align": "center"}
     ]
 
     if not filters:
@@ -18,9 +19,6 @@ def execute(filters=None):
         filters["date"] = nowdate()
 
     selected_date = filters.get("date")
-    formatted_date = datetime.strptime(selected_date, "%Y-%m-%d").strftime("%d-%b-%Y")
-    columns[0]["label"] = formatted_date
-
     # Fetch all active employees with attendance_device_id
     all_active_employees = frappe.db.sql(
         """
@@ -89,9 +87,15 @@ def execute(filters=None):
         for log in attendance_logs:
             punches = frappe.db.sql(
                 """
-                SELECT at.punch_time, at.punch_type
+                SELECT
+                    at.punch_time,
+                    CASE
+                        WHEN SUM(at.punch_type = 'Manual') > 0 THEN 'Manual'
+                        ELSE 'Auto'
+                    END AS punch_type
                 FROM `tabBiometric Attendance Punch Table` at
                 WHERE at.parent = %(log)s
+                GROUP BY at.punch_time
                 ORDER BY at.punch_time
                 """,
                 {"log": log.name},
@@ -106,14 +110,16 @@ def execute(filters=None):
 
             # Calculate durations
             if len(punches) % 2 != 0:
-                total_duration = "Check"
+                total_duration = _("Incomplete")
+                review_status = _("Needs OUT punch")
             else:
                 total_minutes = calculate_total_minutes(punches)
                 total_duration = format_minutes_to_hhmm(total_minutes)
-                if total_duration != "Check":
-                    valid_minutes.append(total_minutes)
+                review_status = _("Complete")
+                valid_minutes.append(total_minutes)
 
             row_data["total_duration"] = total_duration
+            row_data["review_status"] = review_status
 
             # Add punches
             for i, punch in enumerate(punches, 1):
@@ -162,14 +168,10 @@ def execute(filters=None):
     formatted_data.append({
         "employee_name": "Total",
         "employee_id": len(present_employees),
+        "review_status": _("{0} present").format(len(present_employees)),
         "total_duration": format_minutes_to_hhmm(total_minutes),
         **{f"punch_{i}": None for i in range(1, max_punches + 1)},
     })
-
-    # blank rows
-    blank = {col["fieldname"]: None for col in columns}
-    formatted_data.append(blank)
-    formatted_data.append(blank)
 
     # Absent employees
     absent_employees = [
@@ -181,6 +183,7 @@ def execute(filters=None):
         formatted_data.append({
             "employee_name": emp.employee_name,
             "employee_id": emp.attendance_device_id,
+            "review_status": _("No device events"),
             "total_duration": None,
             **{f"punch_{i}": None for i in range(1, max_punches + 1)},
         })

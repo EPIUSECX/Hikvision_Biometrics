@@ -1,132 +1,177 @@
 {
-  "doctype": "DocType",
-  "name": "Biometric Integration Settings",
-  "module": "Biometric Integration",
-  "issingle": 1,
-  "allow_copy": 1,
-  "custom": 0,
-  "editable_grid": 1,
-  "read_only": 0,
-  "hide_toolbar": 0,
-  "field_order": [
-    "ip",
-    "username",
-    "password",
-    "column_break_1",
-    "start_date_and_time",
-    "end_date_and_time",
-    "timezone",
-    "section_break_geolocation",
-    "default_latitude",
-    "default_longitude",
-    "section_break_attendance",
-    "auto_create_attendance",
-    "webhook_secret",
-    "devices"
-  ],
-  "fields": [
-    {
-      "fieldname": "ip",
-      "label": "IP",
-      "fieldtype": "Data",
-      "reqd": 0
-    },
-    {
-      "fieldname": "username",
-      "label": "Username",
-      "fieldtype": "Data",
-      "reqd": 0
-    },
-    {
-      "fieldname": "password",
-      "label": "Password",
-      "fieldtype": "Password",
-      "reqd": 0
-    },
-    {
-      "fieldname": "column_break_1",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "start_date_and_time",
-      "label": "Start Date And Time",
-      "fieldtype": "Datetime"
-    },
-    {
-      "fieldname": "end_date_and_time",
-      "label": "End Date And Time",
-      "fieldtype": "Datetime"
-    },
-    {
-      "fieldname": "timezone",
-      "label": "Timezone",
-      "fieldtype": "Data",
-      "description": "Optional device UTC offset (for example +02:00). Leave blank to use the Frappe site timezone."
-    },
-    {
-      "fieldname": "section_break_geolocation",
-      "fieldtype": "Section Break",
-      "label": "Geolocation Settings"
-    },
-    {
-      "fieldname": "default_latitude",
-      "label": "Default Latitude",
-      "fieldtype": "Float",
-      "precision": "7",
-      "description": "Default latitude for geolocation when device-specific location is not available. Only used if HR Settings > Allow Geolocation Tracking is enabled."
-    },
-    {
-      "fieldname": "default_longitude",
-      "label": "Default Longitude",
-      "fieldtype": "Float",
-      "precision": "7",
-      "description": "Default longitude for geolocation when device-specific location is not available. Only used if HR Settings > Allow Geolocation Tracking is enabled."
-    },
-    {
-      "fieldname": "section_break_attendance",
-      "fieldtype": "Section Break",
-      "label": "Attendance Settings"
-    },
-    {
-      "fieldname": "auto_create_attendance",
-      "label": "Auto Create Attendance",
-      "fieldtype": "Check",
-      "default": 1,
-      "description": "Automatically create Attendance records from Employee Checkin"
-    },
-    {
-      "fieldname": "webhook_secret",
-      "label": "Webhook Secret",
-      "fieldtype": "Password",
-      "description": "Secret key for webhook authentication (optional)"
-    },
-    {
-      "fieldname": "devices",
-      "label": "Devices",
-      "fieldtype": "Table",
-      "options": "Biometric Device"
-    }
-  ],
-  "permissions": [
-    {
-      "role": "System Manager",
-      "read": 1,
-      "write": 1,
-      "create": 1,
-      "delete": 1,
-      "share": 1,
-      "email": 1,
-      "print": 1
-    },
-    {
-      "role": "CE HR",
-      "read": 1,
-      "write": 1,
-      "create": 1,
-      "delete": 1,
-      "share": 1,
-      "email": 1,
-      "print": 1
-    }
-  ]
+ "allow_copy": 1,
+ "custom": 0,
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "field_order": [
+  "devices_section",
+  "devices_intro",
+  "devices",
+  "sync_section",
+  "start_date_and_time",
+  "end_date_and_time",
+  "column_break_sync",
+  "timezone",
+  "section_break_attendance",
+  "auto_create_attendance",
+  "column_break_attendance",
+  "webhook_secret",
+  "section_break_geolocation",
+  "default_latitude",
+  "default_longitude",
+  "legacy_section",
+  "ip",
+  "username",
+  "password"
+ ],
+ "fields": [
+  {
+   "fieldname": "devices_section",
+   "fieldtype": "Section Break",
+   "label": "Hikvision Devices"
+  },
+  {
+   "fieldname": "devices_intro",
+   "fieldtype": "HTML",
+   "options": "<div class=\"text-muted\">Add each attendance terminal below. Active devices are used by <b>Test Devices</b> and <b>Sync Now</b>; credentials remain encrypted at rest.</div>"
+  },
+  {
+   "fieldname": "devices",
+   "fieldtype": "Table",
+   "label": "Devices",
+   "options": "Biometric Device"
+  },
+  {
+   "fieldname": "sync_section",
+   "fieldtype": "Section Break",
+   "label": "Sync Window"
+  },
+  {
+   "description": "First device event to request. Keep the window narrow for faster syncs.",
+   "fieldname": "start_date_and_time",
+   "fieldtype": "Datetime",
+   "label": "From"
+  },
+  {
+   "description": "Last device event to request.",
+   "fieldname": "end_date_and_time",
+   "fieldtype": "Datetime",
+   "label": "To"
+  },
+  {
+   "fieldname": "column_break_sync",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional device UTC offset, for example +02:00. Leave blank to use the ERPNext site timezone.",
+   "fieldname": "timezone",
+   "fieldtype": "Data",
+   "label": "Device Timezone Offset"
+  },
+  {
+   "fieldname": "section_break_attendance",
+   "fieldtype": "Section Break",
+   "label": "Attendance Processing"
+  },
+  {
+   "default": "1",
+   "description": "Create Attendance immediately from complete IN/OUT sessions. Leave off if HRMS Shift Type auto-attendance is your only processor.",
+   "fieldname": "auto_create_attendance",
+   "fieldtype": "Check",
+   "label": "Create Attendance Immediately"
+  },
+  {
+   "fieldname": "column_break_attendance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional shared secret used to authenticate device webhooks.",
+   "fieldname": "webhook_secret",
+   "fieldtype": "Password",
+   "label": "Webhook Secret"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_geolocation",
+   "fieldtype": "Section Break",
+   "label": "Geolocation (Optional)"
+  },
+  {
+   "description": "Fallback latitude when a device has no location. Used only when HR Settings enables geolocation tracking.",
+   "fieldname": "default_latitude",
+   "fieldtype": "Float",
+   "label": "Default Latitude",
+   "precision": "7"
+  },
+  {
+   "description": "Fallback longitude when a device has no location. Used only when HR Settings enables geolocation tracking.",
+   "fieldname": "default_longitude",
+   "fieldtype": "Float",
+   "label": "Default Longitude",
+   "precision": "7"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "legacy_section",
+   "fieldtype": "Section Break",
+   "label": "Legacy Single-Device Fallback"
+  },
+  {
+   "description": "Used only when there are no active rows in the Devices table.",
+   "fieldname": "ip",
+   "fieldtype": "Data",
+   "label": "Device IP"
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Username"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Password"
+  }
+ ],
+ "hide_toolbar": 0,
+ "issingle": 1,
+ "module": "Biometric Integration",
+ "name": "Biometric Integration Settings",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "HR User"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "CE HR",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "read_only": 0
 }

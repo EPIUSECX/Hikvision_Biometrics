@@ -1,19 +1,62 @@
 # Copyright (c) 2025, NDV and contributors
 # For license information, please see license.txt
 
-# import frappe
+from datetime import datetime, timedelta
+
+import frappe
 from frappe.model.document import Document
+
+from biometric_integration.employee_checkin_sync import (
+    _punch_time_key,
+    sync_punches_to_employee_checkin,
+)
 
 
 class BiometricManualPunch(Document):
-	pass
+    def validate(self):
+        attendance_device_id = frappe.db.get_value(
+            "Employee", self.employee, "attendance_device_id"
+        )
+        if not attendance_device_id:
+            frappe.throw("Set an Attendance Device ID on this Employee before adding a correction.")
 
+        punch_time = str(self.punch_time).split(".")[0]
+        event_time = datetime.strptime(punch_time, "%H:%M:%S").time()
+        attendance_log = frappe.db.get_value(
+            "Biometric Attendance Log",
+            {"employee_no": attendance_device_id, "event_date": self.punch_date},
+            "name",
+        )
+        if not attendance_log:
+            return
 
-from datetime import datetime, timedelta
-import frappe
+        existing_times = frappe.get_all(
+            "Biometric Attendance Punch Table",
+            filters={"parent": attendance_log},
+            pluck="punch_time",
+        )
+        if any(_punch_time_key(value) == _punch_time_key(event_time) for value in existing_times):
+            frappe.throw("A device event already exists for this employee at that date and time.")
+
+    def after_insert(self):
+        result = _add_manual_punch(self.employee, self.punch_date, self.punch_time, commit=False)
+        if result["status"] != "success":
+            frappe.throw(result["message"])
+
+        created, reconciled = sync_punches_to_employee_checkin(commit=False)
+        frappe.msgprint(
+            f"{result['message']} HRMS check-ins updated: {created} created, "
+            f"{reconciled} reconciled.",
+            title="Manual Correction Applied",
+            indicator="green",
+        )
 
 @frappe.whitelist()
 def add_manual_punch(employee, punch_date, punch_time):
+    return _add_manual_punch(employee, punch_date, punch_time, commit=True)
+
+
+def _add_manual_punch(employee, punch_date, punch_time, commit=False):
     try:
         employee_name = frappe.db.get_value('Employee', employee, 'employee_name')
         attendance_device_id = frappe.db.get_value('Employee', employee, 'attendance_device_id')
@@ -22,7 +65,7 @@ def add_manual_punch(employee, punch_date, punch_time):
             return {'status': 'error', 'message': f"Attendance Device ID not found for {employee_name}"}
 
         # Remove fractional seconds, if any, from punch_time
-        punch_time = punch_time.split('.')[0]
+        punch_time = str(punch_time).split('.')[0]
         punch_datetime = datetime.strptime(f"{punch_date} {punch_time}", '%Y-%m-%d %H:%M:%S')
 
         query = """
@@ -57,7 +100,8 @@ def add_manual_punch(employee, punch_date, punch_time):
             doc.append('punch_table', punch)
 
         doc.save(ignore_permissions=True)
-        frappe.db.commit()
+        if commit:
+            frappe.db.commit()
 
         return {'status': 'success', 'message': f"Manual punch for {employee_name} on {punch_date} at {punch_time} added successfully."}
 

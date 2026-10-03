@@ -1,0 +1,19 @@
+{
+ "app": "biometric_integration",
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "App",
+ "idx": 12,
+ "label": "Biometric Integration",
+ "link": "/desk/biometric-integration?sidebar=Biometric%20Integration",
+ "link_type": "External",
+ "logo_url": "/assets/biometric_integration/images/biometric-integration-logo.svg",
+ "name": "Biometric Integration",
+ "roles": [
+  {"role": "System Manager"},
+  {"role": "HR Manager"},
+  {"role": "HR User"},
+  {"role": "CE HR"}
+ ],
+ "standard": 1
+}

@@ -88,6 +88,8 @@ def _get_device_configs(settings):
 
 @frappe.whitelist()
 def test_connection():
+    from biometric_integration.biometric_integration.device_monitor import update_device_status
+
     settings = frappe.get_doc("Biometric Integration Settings", "Biometric Integration Settings")
     device_configs = _get_device_configs(settings)
     if not device_configs:
@@ -98,30 +100,38 @@ def test_connection():
     results = []
 
     for label, ip, username, password in device_configs:
-        response = requests.post(
-            f"http://{ip}/ISAPI/AccessControl/AcsEvent?format=json",
-            auth=HTTPDigestAuth(username, password),
-            headers={"Content-Type": "application/json"},
-            json={
-                "AcsEventCond": {
-                    "searchID": "connection-test",
-                    "searchResultPosition": 0,
-                    "maxResults": 1,
-                    "major": 5,
-                    "minor": 75,
-                    "startTime": start_time,
-                    "endTime": end_time,
-                }
-            },
-            verify=False,
-            timeout=10,
-        )
-        status = "success" if response.status_code == 200 else "error"
-        message = (
-            "Connected (HTTP 200)"
-            if response.status_code == 200
-            else f"Unexpected response: HTTP {response.status_code}"
-        )
+        try:
+            response = requests.post(
+                f"http://{ip}/ISAPI/AccessControl/AcsEvent?format=json",
+                auth=HTTPDigestAuth(username, password),
+                headers={"Content-Type": "application/json"},
+                json={
+                    "AcsEventCond": {
+                        "searchID": "connection-test",
+                        "searchResultPosition": 0,
+                        "maxResults": 1,
+                        "major": 5,
+                        "minor": 75,
+                        "startTime": start_time,
+                        "endTime": end_time,
+                    }
+                },
+                verify=False,
+                timeout=10,
+            )
+            connected = response.status_code == 200
+            status = "success" if connected else "error"
+            message = (
+                "Connected (HTTP 200)"
+                if connected
+                else f"Unexpected response: HTTP {response.status_code}"
+            )
+        except requests.RequestException as exc:
+            connected = False
+            status = "error"
+            message = f"Connection failed: {exc}"
+
+        update_device_status(ip, "Online" if connected else "Offline", None if connected else message)
         results.append({"label": label, "ip": ip, "status": status, "message": message})
 
     return results

@@ -5,8 +5,8 @@ def get_data():
     return [
         {
             "module_name": "Biometric Integration",
-            "color": "green",
-            "icon": "octicon octicon-device-camera-video",
+            "color": "#087F5B",
+            "icon": "fingerprint",
             "type": "module",
             "label": _("Biometric Integration"),
         }

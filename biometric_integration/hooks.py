@@ -4,9 +4,9 @@ from __future__ import unicode_literals
 app_name = "biometric_integration"
 app_title = "Biometric Integration"
 app_publisher = "Taomoor"
-app_description = "Hikvision biometric devices Integration with ERPNext"
-app_icon = "octicon octicon-device-camera"
-app_color = "grey"
+app_description = "Hikvision time and attendance integration for ERPNext and Frappe HR"
+app_icon = "fingerprint"
+app_color = "green"
 app_email = "tymuur@outlook.com"
 app_license = "MIT"
 
@@ -47,6 +47,12 @@ doc_events = {
     "Employee Checkin": {
         "after_insert": "biometric_integration.biometric_integration.attendance_processor.on_employee_checkin_insert"
     }
+}
+
+# Keep the HRMS check-in audit trail chronological for biometric practitioners.
+# The script preserves HRMS' existing list actions and keeps re-sorting available.
+doctype_list_js = {
+    "Employee Checkin": "public/js/employee_checkin_list.js",
 }
 
 # Note on Auto-Attendance Integration:

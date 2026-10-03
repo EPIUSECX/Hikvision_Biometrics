@@ -168,6 +168,7 @@ def monitor_all_devices():
         frappe.log_error(f"Error monitoring devices: {str(e)}", "Device Monitor Error")
 
 
+@frappe.whitelist()
 def get_device_status_summary():
     """
     Get summary of all device statuses.
@@ -204,7 +205,7 @@ def get_device_status_summary():
                 )
 
         online_count = sum(1 for d in devices if d["status"] == "Online")
-        offline_count = sum(1 for d in devices if d["status"] == "Offline")
+        offline_count = sum(1 for d in devices if d["status"] in ("Offline", "Error"))
 
         return {"total": len(devices), "online": online_count, "offline": offline_count, "devices": devices}
 

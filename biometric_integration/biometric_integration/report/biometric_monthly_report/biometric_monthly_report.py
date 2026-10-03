@@ -122,7 +122,7 @@ def execute(filters=None):
             
             for log in attendance_logs:
                 punches = frappe.db.sql("""
-                    SELECT at.punch_time
+                    SELECT DISTINCT at.punch_time
                     FROM `tabBiometric Attendance Punch Table` at
                     WHERE at.parent = %(log_name)s
                     ORDER BY at.punch_time

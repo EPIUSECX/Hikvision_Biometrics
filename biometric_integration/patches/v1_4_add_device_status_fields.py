@@ -12,7 +12,9 @@ def execute():
     dt = "Biometric Device"
 
     # Status field
-    if not frappe.db.exists("Custom Field", {"dt": dt, "fieldname": "status"}):
+    if not frappe.db.has_column(dt, "status") and not frappe.db.exists(
+        "Custom Field", {"dt": dt, "fieldname": "status"}
+    ):
         cf = frappe.get_doc(
             {
                 "doctype": "Custom Field",
@@ -28,7 +30,9 @@ def execute():
         cf.insert(ignore_permissions=True)
 
     # Last status check
-    if not frappe.db.exists("Custom Field", {"dt": dt, "fieldname": "last_status_check"}):
+    if not frappe.db.has_column(dt, "last_status_check") and not frappe.db.exists(
+        "Custom Field", {"dt": dt, "fieldname": "last_status_check"}
+    ):
         cf = frappe.get_doc(
             {
                 "doctype": "Custom Field",
@@ -42,7 +46,9 @@ def execute():
         cf.insert(ignore_permissions=True)
 
     # Last error
-    if not frappe.db.exists("Custom Field", {"dt": dt, "fieldname": "last_error"}):
+    if not frappe.db.has_column(dt, "last_error") and not frappe.db.exists(
+        "Custom Field", {"dt": dt, "fieldname": "last_error"}
+    ):
         cf = frappe.get_doc(
             {
                 "doctype": "Custom Field",

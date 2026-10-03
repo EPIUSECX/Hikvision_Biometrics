@@ -1,0 +1,143 @@
+{
+ "app": "biometric_integration",
+ "doctype": "Workspace Sidebar",
+ "header_icon": "fingerprint",
+ "items": [
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "home",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Home",
+   "link_to": "Biometric Integration",
+   "link_type": "Workspace",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "settings",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Devices & Sync",
+   "link_to": "Biometric Integration Settings",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "database",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Raw Device Events",
+   "link_to": "Biometric Attendance Log",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "pointer",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Employee Check-ins",
+   "link_to": "Employee Checkin",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "calendar-check",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Attendance",
+   "link_to": "Attendance",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "tool",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Manual Correction",
+   "link_to": "Biometric Manual Punch",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "milestone",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Shift Types",
+   "link_to": "Shift Type",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "calendar-range",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Shift Assignments",
+   "link_to": "Shift Assignment",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "users",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Employees",
+   "link_to": "Employee",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "notepad-text",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Daily Review",
+   "link_to": "Biometric Daily Report",
+   "link_type": "Report",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "chart",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Monthly Summary",
+   "link_to": "Biometric Monthly Report",
+   "link_type": "Report",
+   "show_arrow": 0,
+   "type": "Link"
+  }
+ ],
+ "module": "Biometric Integration",
+ "name": "Biometric Integration",
+ "standard": 1,
+ "title": "Biometric Integration"
+}
