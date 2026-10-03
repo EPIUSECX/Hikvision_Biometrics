@@ -4,17 +4,18 @@ Attendance Processor - Creates Attendance records from Employee Checkin records
 Integrates with Frappe HRMS Time and Attendance module
 """
 
+from datetime import timedelta
+
 import frappe
-from frappe.utils import getdate, get_datetime
-from datetime import timedelta, datetime
+from frappe.utils import get_datetime, getdate
 
 # HRMS standard imports
 from hrms.hr.doctype.employee_checkin.employee_checkin import (
-    mark_attendance_and_link_log,
     calculate_working_hours,
+    mark_attendance_and_link_log,
 )
-from hrms.hr.utils import get_holidays_for_employee, get_holiday_dates_for_employee
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_actual_start_end_datetime_of_shift
+from hrms.hr.utils import get_holiday_dates_for_employee
 
 
 def create_attendance_from_checkins(date=None):
@@ -144,7 +145,9 @@ def _process_checkins_for_attendance_hrms(employee, date, checkins):
     # Use HRMS calculate_working_hours function
     # Get shift type to determine check-in/out type and working hours calculation method
     check_in_out_type = "Strictly based on Log Type in Employee Checkin"
-    working_hours_calc_type = "First Check-in and Last Check-out"
+    # Without a Shift Type, sum each completed IN/OUT pair. This excludes time
+    # spent checked out between multiple work sessions during the same day.
+    working_hours_calc_type = "Every Valid Check-in and Check-out"
 
     if shift:
         shift_type_doc = frappe.get_doc("Shift Type", shift)

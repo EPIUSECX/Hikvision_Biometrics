@@ -1,6 +1,8 @@
+from datetime import time, timedelta
+
 import frappe
-from frappe.utils import get_datetime
 import requests
+from frappe.utils import get_datetime
 
 # -------------------------------
 # Geolocation helpers
@@ -96,18 +98,47 @@ def get_geolocation(device_ip=None, device_name=None):
     return None, None
 
 
-def sync_punches_to_employee_checkin():
+def _punch_time_key(value):
+    """Return a stable, sortable microsecond key for Frappe Time values."""
+    if value is None:
+        return None
+
+    if isinstance(value, timedelta):
+        return round(value.total_seconds() * 1_000_000)
+
+    if isinstance(value, time):
+        return ((value.hour * 60 + value.minute) * 60 + value.second) * 1_000_000 + value.microsecond
+
+    parsed = get_datetime(f"2000-01-01 {value}")
+    return ((parsed.hour * 60 + parsed.minute) * 60 + parsed.second) * 1_000_000 + parsed.microsecond
+
+
+def _group_punches_by_time(punches):
+    """Group duplicate device events while preserving chronological order."""
+    groups = {}
+    for punch in punches:
+        key = _punch_time_key(punch.get("punch_time"))
+        if key is None:
+            continue
+        groups.setdefault(key, []).append(punch)
+
+    return [groups[key] for key in sorted(groups)]
+
+
+def sync_punches_to_employee_checkin(commit=True):
     """
     Convert unsynced biometric punches into Employee Checkin records.
 
     Rules:
     - Group punches by (employee_no, event_date)
     - Map employee_no -> Employee via Employee.attendance_device_id
-    - For each group (one employee, one date):
-        * First punch of the day  -> Employee Checkin (IN)
-        * Last punch of the day   -> Employee Checkin (OUT)
-        * Middle punches stay only in the punch table, but are marked as synced
-    - Avoid duplicate Employee Checkin rows (same employee + time)
+    - Convert every unique punch time into an alternating IN/OUT sequence
+      (IN, OUT, IN, OUT, ...), so employees may leave and return repeatedly
+      during the same day.
+    - Collapse duplicate device events at the same timestamp into one check-in.
+    - Reconcile punches that older versions marked synced without creating a
+      linked Employee Checkin.
+    - Avoid duplicate Employee Checkin rows (same employee + time).
     - Mark punches as synced via Biometric Attendance Punch Table.synced_to_employee_checkin
     - Copy device_id (device IP) from punches/logs into Employee Checkin.device_id
     - When HRMS geolocation is enabled, fill latitude/longitude fields so validation passes.
@@ -121,6 +152,8 @@ def sync_punches_to_employee_checkin():
 
     # Check optional columns exist (DB-level)
     punch_has_employee_checkin = frappe.db.has_column("Biometric Attendance Punch Table", "employee_checkin")
+    punch_has_device_id = frappe.db.has_column("Biometric Attendance Punch Table", "device_id")
+    log_has_device_id = frappe.db.has_column("Biometric Attendance Log", "device_id")
     checkin_has_biometric_log = frappe.db.has_column("Employee Checkin", "biometric_log")
     checkin_has_biometric_punch = frappe.db.has_column("Employee Checkin", "biometric_punch")
     checkin_has_device_id = frappe.db.has_column("Employee Checkin", "device_id")
@@ -134,44 +167,76 @@ def sync_punches_to_employee_checkin():
     # Check if geolocation tracking is enabled (will be checked per device in _create_checkin_for_punch)
     # We don't fetch default geolocation here - it will be fetched per device when needed
 
-    # Get all unsynced punches joined with their parent logs
-    # Optimized query with better indexing hints
-    punches = frappe.db.sql(
-        """
-        SELECT
-            p.name AS punch_name,
-            p.punch_time,
-            p.punch_type,
-            COALESCE(p.synced_to_employee_checkin, 0) AS synced,
-            p.device_id AS punch_device_id,
-            l.name AS log_name,
-            l.employee_no,
-            l.event_date,
-            l.device_id AS log_device_id
+    if punch_has_employee_checkin:
+        employee_checkin_join = "LEFT JOIN `tabEmployee Checkin` ec ON ec.name = p.employee_checkin"
+        reconciliation_filter = (
+            "COALESCE(p.synced_to_employee_checkin, 0) = 0 OR p.employee_checkin IS NULL OR ec.name IS NULL"
+        )
+    else:
+        employee_checkin_join = ""
+        reconciliation_filter = "COALESCE(p.synced_to_employee_checkin, 0) = 0"
+
+    # Select only employee/date groups needing work, then load the complete day
+    # for each group so incremental runs continue the correct IN/OUT sequence.
+    pending_groups = frappe.db.sql(
+        f"""
+        SELECT DISTINCT l.employee_no, l.event_date
         FROM `tabBiometric Attendance Punch Table` p
         INNER JOIN `tabBiometric Attendance Log` l ON l.name = p.parent
-        WHERE COALESCE(p.synced_to_employee_checkin, 0) = 0
-        ORDER BY l.employee_no, l.event_date, p.punch_time
-        LIMIT 10000
+        {employee_checkin_join}
+        WHERE {reconciliation_filter}
+        ORDER BY l.event_date, l.employee_no
+        LIMIT 1000
         """,
         as_dict=True,
     )
 
-    if not punches:
+    if not pending_groups:
         return 0, 0
 
     created = 0
     already_synced = 0
 
-    # Group punches by (employee_no, event_date)
-    groups = {}
-    for p in punches:
-        key = (p["employee_no"], p["event_date"])
-        groups.setdefault(key, []).append(p)
+    employee_checkin_select = (
+        "p.employee_checkin" if punch_has_employee_checkin else "NULL AS employee_checkin"
+    )
+    punch_device_select = "p.device_id" if punch_has_device_id else "NULL AS punch_device_id"
+    if punch_has_device_id:
+        punch_device_select += " AS punch_device_id"
+    log_device_select = "l.device_id" if log_has_device_id else "NULL AS log_device_id"
+    if log_has_device_id:
+        log_device_select += " AS log_device_id"
 
-    for (emp_no, event_date), group_punches in groups.items():
+    for pending_group in pending_groups:
+        emp_no = pending_group.employee_no
+        event_date = pending_group.event_date
+
         # If no device employee number, just skip this group
         if not emp_no:
+            continue
+
+        group_punches = frappe.db.sql(
+            f"""
+            SELECT
+                p.name AS punch_name,
+                p.punch_time,
+                p.punch_type,
+                COALESCE(p.synced_to_employee_checkin, 0) AS synced,
+                {employee_checkin_select},
+                {punch_device_select},
+                l.name AS log_name,
+                {log_device_select}
+            FROM `tabBiometric Attendance Punch Table` p
+            INNER JOIN `tabBiometric Attendance Log` l ON l.name = p.parent
+            WHERE l.employee_no = %s AND l.event_date = %s
+            ORDER BY p.punch_time, p.creation, p.name
+            """,
+            (emp_no, event_date),
+            as_dict=True,
+        )
+
+        unique_punch_groups = _group_punches_by_time(group_punches)
+        if not unique_punch_groups:
             continue
 
         # Map device employee_no -> Employee via attendance_device_id
@@ -203,68 +268,57 @@ def sync_punches_to_employee_checkin():
 
         employee = emp_row.name
 
-        # Ensure sorted by time
-        group_punches.sort(key=lambda x: x["punch_time"] or "")
+        def _bucket_needs_reconciliation(punch_group):
+            for punch in punch_group:
+                if not punch.get("synced"):
+                    return True
+                if punch_has_employee_checkin:
+                    linked_checkin = punch.get("employee_checkin")
+                    if not linked_checkin or not frappe.db.exists("Employee Checkin", linked_checkin):
+                        return True
+            return False
 
-        # Validate punch sequence
-        from biometric_integration.biometric_integration.punch_validator import (
-            validate_biometric_punch_table,
-            flag_invalid_sequences_for_review,
-        )
-
-        # Convert to format for validator
-        punch_table_rows = [
-            type(
-                "PunchRow", (), {"punch_time": p.get("punch_time"), "punch_type": p.get("punch_type", "Auto")}
-            )()
-            for p in group_punches
-        ]
-
-        validation = validate_biometric_punch_table(punch_table_rows)
-        if not validation["valid"]:
-            # Flag for review but continue processing
-            flag_invalid_sequences_for_review(employee, event_date, [])
-            if validation.get("errors"):
-                frappe.log_error(
-                    f"Invalid punch sequence for {employee} on {event_date}: {validation['errors']}",
-                    "Biometric Punch Validation",
-                )
-
-        # Determine first and last punches
-        # Handle different punch types: Auto, Break, Overtime
-        # For checkin sync, we use first Auto punch as IN and last Auto punch as OUT
-        auto_punches = [p for p in group_punches if p.get("punch_type") == "Auto"]
-        break_punches = [p for p in group_punches if p.get("punch_type") == "Break"]
-
-        # Use first and last auto punches for IN/OUT
-        if auto_punches:
-            first = auto_punches[0]
-            last = auto_punches[-1]
-        else:
-            # Fallback to first and last of all punches
-            first = group_punches[0]
-            last = group_punches[-1]
-
-        def _create_checkin_for_punch(punch, log_type):
-            nonlocal created, already_synced
-
-            time_str = f"{event_date} {punch['punch_time']}"
-            punch_dt = get_datetime(time_str)
-
-            # Avoid duplicate Employee Checkin rows for the same employee+time
-            exists = frappe.db.exists(
-                "Employee Checkin",
-                {"employee": employee, "time": punch_dt},
-            )
-            if exists:
-                already_synced += 1
+        def _mark_punch_group_synced(punch_group, employee_checkin):
+            update_values = {"synced_to_employee_checkin": 1}
+            if punch_has_employee_checkin:
+                update_values["employee_checkin"] = employee_checkin
+            for punch in punch_group:
                 frappe.db.set_value(
                     "Biometric Attendance Punch Table",
                     punch["punch_name"],
-                    "synced_to_employee_checkin",
-                    1,
+                    update_values,
                 )
-                return
+
+        for index, punch_group in enumerate(unique_punch_groups):
+            if not _bucket_needs_reconciliation(punch_group):
+                continue
+
+            punch = punch_group[0]
+            log_type = "IN" if index % 2 == 0 else "OUT"
+            punch_dt = get_datetime(f"{event_date} {punch['punch_time']}")
+
+            # Avoid duplicate Employee Checkin rows for the same employee+time.
+            existing_checkin = frappe.db.get_value(
+                "Employee Checkin",
+                {"employee": employee, "time": punch_dt},
+                ["name", "log_type", "attendance"],
+                as_dict=True,
+            )
+            if existing_checkin:
+                if existing_checkin.log_type != log_type:
+                    if existing_checkin.attendance:
+                        frappe.log_error(
+                            f"Checkin {existing_checkin.name} is linked to attendance "
+                            f"{existing_checkin.attendance} with log type "
+                            f"{existing_checkin.log_type}; expected {log_type}.",
+                            "Biometric Checkin Sequence Mismatch",
+                        )
+                    else:
+                        frappe.db.set_value("Employee Checkin", existing_checkin.name, "log_type", log_type)
+
+                _mark_punch_group_synced(punch_group, existing_checkin.name)
+                already_synced += 1
+                continue
 
             checkin = frappe.new_doc("Employee Checkin")
             checkin.employee = employee
@@ -276,7 +330,14 @@ def sync_punches_to_employee_checkin():
                 checkin.employee_name = frappe.db.get_value("Employee", employee, "employee_name")
 
             # Device ID (prefer punch device_id, fall back to log device_id)
-            device_id = punch.get("punch_device_id") or punch.get("log_device_id")
+            device_id = next(
+                (
+                    row.get("punch_device_id") or row.get("log_device_id")
+                    for row in punch_group
+                    if row.get("punch_device_id") or row.get("log_device_id")
+                ),
+                None,
+            )
             if checkin_has_device_id and device_id:
                 checkin.device_id = device_id
 
@@ -305,39 +366,12 @@ def sync_punches_to_employee_checkin():
 
             checkin.insert(ignore_permissions=True)
 
-            # Mark this punch as synced and link to Employee Checkin if possible
-            update_values = {"synced_to_employee_checkin": 1}
-            if punch_has_employee_checkin:
-                update_values["employee_checkin"] = checkin.name
-
-            frappe.db.set_value(
-                "Biometric Attendance Punch Table",
-                punch["punch_name"],
-                update_values,
-            )
-
+            # Duplicate device events at this timestamp all point to the same check-in.
+            _mark_punch_group_synced(punch_group, checkin.name)
             created += 1
 
-        # Create IN checkin for first punch
-        _create_checkin_for_punch(first, "IN")
-
-        # If there is more than one punch, create OUT checkin for last punch
-        if last["punch_name"] != first["punch_name"]:
-            _create_checkin_for_punch(last, "OUT")
-
-        # Mark middle punches as synced (but no Employee Checkin)
-        middle = [
-            p for p in group_punches if p["punch_name"] not in {first["punch_name"], last["punch_name"]}
-        ]
-        for p in middle:
-            frappe.db.set_value(
-                "Biometric Attendance Punch Table",
-                p["punch_name"],
-                "synced_to_employee_checkin",
-                1,
-            )
-
-    frappe.db.commit()
+    if commit:
+        frappe.db.commit()
     return created, already_synced
 
 

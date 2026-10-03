@@ -1,13 +1,16 @@
+import re
+from datetime import datetime, timedelta
+from datetime import timezone as datetime_timezone
+from zoneinfo import ZoneInfo
+
 import frappe
 import requests
-import re
-from zoneinfo import ZoneInfo
 from frappe.model.document import Document
 from frappe.utils import get_datetime, get_system_timezone, now_datetime
 from requests.auth import HTTPDigestAuth
-from datetime import datetime, timedelta, timezone as datetime_timezone
 
 from biometric_integration.employee_checkin_sync import (
+    _punch_time_key,
     sync_punches_to_employee_checkin,
 )
 
@@ -151,8 +154,8 @@ def _sync_for_single_device(settings, label, ip, username, password, start_time,
 
     # Use retry logic for device connection
     from biometric_integration.biometric_integration.error_handler import (
-        retry_with_backoff,
         handle_device_connection_error,
+        retry_with_backoff,
     )
 
     def fetch_device_data():
@@ -276,22 +279,25 @@ def _sync_for_single_device(settings, label, ip, username, password, start_time,
 
                 # Get or create log doc
                 log_key = (emp_no, event_date)
-                if log_key in existing_logs:
-                    doc_name = existing_logs[log_key]
-                    if doc_name not in docs_to_save:
-                        docs_to_save[doc_name] = frappe.get_doc("Biometric Attendance Log", doc_name)
-                    doc = docs_to_save[doc_name]
-                else:
-                    doc = frappe.new_doc("Biometric Attendance Log")
-                    doc.employee_no = emp_no
-                    doc.event_date = event_date
-                    if log_has_device_id:
-                        doc.device_id = ip
-                    docs_to_save[doc.name] = doc
+                if log_key not in docs_to_save:
+                    if log_key in existing_logs:
+                        doc = frappe.get_doc("Biometric Attendance Log", existing_logs[log_key])
+                    else:
+                        doc = frappe.new_doc("Biometric Attendance Log")
+                        doc.employee_no = emp_no
+                        doc.event_date = event_date
+                        if log_has_device_id:
+                            doc.device_id = ip
+                    docs_to_save[log_key] = {"doc": doc, "new_punches": 0}
+
+                entry = docs_to_save[log_key]
+                doc = entry["doc"]
 
                 # Check for duplicate punch time
                 existing_punch = any(
-                    p.punch_time == event_time for p in doc.punch_table if hasattr(p, "punch_time")
+                    _punch_time_key(p.punch_time) == _punch_time_key(event_time)
+                    for p in doc.punch_table
+                    if getattr(p, "punch_time", None) is not None
                 )
 
                 if not existing_punch:
@@ -303,16 +309,16 @@ def _sync_for_single_device(settings, label, ip, username, password, start_time,
                         punch_row["device_id"] = ip
 
                     doc.append("punch_table", punch_row)
+                    entry["new_punches"] += 1
                 else:
                     skipped += 1
 
             # Bulk save all documents
-            for doc in docs_to_save.values():
+            for entry in docs_to_save.values():
+                doc = entry["doc"]
                 try:
-                    punch_count_before = len(doc.punch_table)
                     doc.save(ignore_permissions=True)
-                    punch_count_after = len(doc.punch_table)
-                    count += punch_count_after - punch_count_before
+                    count += entry["new_punches"]
                 except Exception:
                     frappe.log_error(
                         frappe.get_traceback(),
