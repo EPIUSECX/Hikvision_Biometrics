@@ -1,69 +1,132 @@
 {
- "actions": [],
- "allow_copy": 1,
- "creation": "2026-05-05 10:01:18.720051",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "start_date_and_time",
-  "end_date_and_time",
-  "section_break_fliw",
-  "devices"
- ],
- "fields": [
-  {
-   "fieldname": "start_date_and_time",
-   "fieldtype": "Datetime",
-   "label": "Start Date And Time"
-  },
-  {
-   "fieldname": "end_date_and_time",
-   "fieldtype": "Datetime",
-   "label": "End Date And Time"
-  },
-  {
-   "fieldname": "devices",
-   "fieldtype": "Table",
-   "label": "Devices",
-   "options": "Biometric Device"
-  },
-  {
-   "fieldname": "section_break_fliw",
-   "fieldtype": "Section Break"
-  }
- ],
- "issingle": 1,
- "links": [],
- "modified": "2026-05-05 10:22:11.890345",
- "modified_by": "tymuur@outlook.com",
- "module": "Biometric Integration",
- "name": "Biometric Integration Settings",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "role": "CE HR",
-   "share": 1,
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+  "doctype": "DocType",
+  "name": "Biometric Integration Settings",
+  "module": "Biometric Integration",
+  "issingle": 1,
+  "allow_copy": 1,
+  "custom": 0,
+  "editable_grid": 1,
+  "read_only": 0,
+  "hide_toolbar": 0,
+  "field_order": [
+    "ip",
+    "username",
+    "password",
+    "column_break_1",
+    "start_date_and_time",
+    "end_date_and_time",
+    "timezone",
+    "section_break_geolocation",
+    "default_latitude",
+    "default_longitude",
+    "section_break_attendance",
+    "auto_create_attendance",
+    "webhook_secret",
+    "devices"
+  ],
+  "fields": [
+    {
+      "fieldname": "ip",
+      "label": "IP",
+      "fieldtype": "Data",
+      "reqd": 0
+    },
+    {
+      "fieldname": "username",
+      "label": "Username",
+      "fieldtype": "Data",
+      "reqd": 0
+    },
+    {
+      "fieldname": "password",
+      "label": "Password",
+      "fieldtype": "Password",
+      "reqd": 0
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "start_date_and_time",
+      "label": "Start Date And Time",
+      "fieldtype": "Datetime"
+    },
+    {
+      "fieldname": "end_date_and_time",
+      "label": "End Date And Time",
+      "fieldtype": "Datetime"
+    },
+    {
+      "fieldname": "timezone",
+      "label": "Timezone",
+      "fieldtype": "Data",
+      "description": "Optional device UTC offset (for example +02:00). Leave blank to use the Frappe site timezone."
+    },
+    {
+      "fieldname": "section_break_geolocation",
+      "fieldtype": "Section Break",
+      "label": "Geolocation Settings"
+    },
+    {
+      "fieldname": "default_latitude",
+      "label": "Default Latitude",
+      "fieldtype": "Float",
+      "precision": "7",
+      "description": "Default latitude for geolocation when device-specific location is not available. Only used if HR Settings > Allow Geolocation Tracking is enabled."
+    },
+    {
+      "fieldname": "default_longitude",
+      "label": "Default Longitude",
+      "fieldtype": "Float",
+      "precision": "7",
+      "description": "Default longitude for geolocation when device-specific location is not available. Only used if HR Settings > Allow Geolocation Tracking is enabled."
+    },
+    {
+      "fieldname": "section_break_attendance",
+      "fieldtype": "Section Break",
+      "label": "Attendance Settings"
+    },
+    {
+      "fieldname": "auto_create_attendance",
+      "label": "Auto Create Attendance",
+      "fieldtype": "Check",
+      "default": 1,
+      "description": "Automatically create Attendance records from Employee Checkin"
+    },
+    {
+      "fieldname": "webhook_secret",
+      "label": "Webhook Secret",
+      "fieldtype": "Password",
+      "description": "Secret key for webhook authentication (optional)"
+    },
+    {
+      "fieldname": "devices",
+      "label": "Devices",
+      "fieldtype": "Table",
+      "options": "Biometric Device"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "share": 1,
+      "email": 1,
+      "print": 1
+    },
+    {
+      "role": "CE HR",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "share": 1,
+      "email": 1,
+      "print": 1
+    }
+  ]
 }
