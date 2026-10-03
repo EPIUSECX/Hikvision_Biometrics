@@ -1,7 +1,9 @@
 import frappe
 import requests
 import re
+from zoneinfo import ZoneInfo
 from frappe.model.document import Document
+from frappe.utils import get_system_timezone, now_datetime
 from requests.auth import HTTPDigestAuth
 from datetime import datetime, timedelta
 
@@ -33,6 +35,15 @@ def _normalize_device_host(raw_ip):
     ip = re.sub(r"^https?://", "", ip, flags=re.IGNORECASE)
     ip = ip.split("/")[0].strip()
     return ip
+
+
+def _format_device_datetime(value):
+    """Format a site-local datetime with the UTC offset expected by Hikvision ISAPI."""
+    value = str(value)
+    local_datetime = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+    return local_datetime.replace(tzinfo=ZoneInfo(get_system_timezone())).isoformat(
+        timespec="seconds"
+    )
 
 
 def _post_device_request(url, username, password, payload, timeout):
@@ -256,8 +267,8 @@ def test_connection():
                         "maxResults": 1,
                         "major": 5,
                         "minor": 75,
-                        "startTime": "2000-01-01T00:00:00+08:00",
-                        "endTime": "2000-01-02T00:00:00+08:00",
+                        "startTime": _format_device_datetime("2000-01-01 00:00:00"),
+                        "endTime": _format_device_datetime("2000-01-02 00:00:00"),
                     }
                 },
                 timeout=10,
@@ -309,12 +320,8 @@ def sync_attendance_device_only():
     settings = frappe.get_doc("Biometric Integration Settings", "Biometric Integration Settings")
 
     # Prepare time window used for ALL devices
-    start_time = datetime.strptime(
-        settings.start_date_and_time, "%Y-%m-%d %H:%M:%S"
-    ).strftime("%Y-%m-%dT%H:%M:%S+08:00")
-    end_time = datetime.strptime(
-        settings.end_date_and_time, "%Y-%m-%d %H:%M:%S"
-    ).strftime("%Y-%m-%dT%H:%M:%S+08:00")
+    start_time = _format_device_datetime(settings.start_date_and_time)
+    end_time = _format_device_datetime(settings.end_date_and_time)
 
     device_configs = _get_device_configs(settings)
     if not device_configs:
@@ -405,7 +412,7 @@ def scheduled_attendance_sync():
 
         BACK_DAYS = 3  # change to 5 if you prefer last 5 days
 
-        today = datetime.now().date()
+        today = now_datetime().date()
         start_date = today - timedelta(days=BACK_DAYS - 1)
 
         start_time = datetime.combine(

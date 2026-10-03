@@ -79,8 +79,11 @@ def sync_punches_to_employee_checkin():
     checkin_has_geo_latitude = frappe.db.has_column("Employee Checkin", "geo_latitude")
     checkin_has_geo_longitude = frappe.db.has_column("Employee Checkin", "geo_longitude")
 
-    # Fetch geolocation once for this sync
-    latitude, longitude = get_geolocation()
+    # Only fetch/store geolocation when HR Settings explicitly requires it.
+    geolocation_enabled = frappe.db.get_single_value(
+        "HR Settings", "allow_geolocation_tracking"
+    )
+    latitude, longitude = (get_geolocation() if geolocation_enabled else (None, None))
 
     punch_device_select = "p.device_id AS punch_device_id" if punch_has_device_id else "NULL AS punch_device_id"
     log_device_select = "l.device_id AS log_device_id" if log_has_device_id else "NULL AS log_device_id"
@@ -202,13 +205,13 @@ def sync_punches_to_employee_checkin():
                 checkin.device_id = device_id
 
             # Geolocation fields: required when "Allow Geolocation Tracking" is enabled
-            if checkin_has_latitude:
+            if checkin_has_latitude and latitude is not None:
                 checkin.latitude = latitude
-            if checkin_has_longitude:
+            if checkin_has_longitude and longitude is not None:
                 checkin.longitude = longitude
-            if checkin_has_geo_latitude:
+            if checkin_has_geo_latitude and latitude is not None:
                 checkin.geo_latitude = latitude
-            if checkin_has_geo_longitude:
+            if checkin_has_geo_longitude and longitude is not None:
                 checkin.geo_longitude = longitude
 
             # Optional back-links to biometric log/punch if those fields exist
